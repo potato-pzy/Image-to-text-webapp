@@ -1,9 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from tkinter.filedialog import askopenfilename
-import tifffile as tiff
 import cv2
-import matplotlib.image as mpimg
 import base64
 import streamlit as st
 from gtts import gTTS

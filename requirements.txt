@@ -1,6 +1,5 @@
 numpy
 matplotlib
-tifffile
 opencv-python
 streamlit
 gtts
