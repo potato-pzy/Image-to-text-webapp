@@ -7,6 +7,7 @@ from gtts import gTTS
 from PIL import Image
 import os
 import subprocess
+from pathlib import Path
 
 # Custom CSS for font and background
 st.markdown(
@@ -150,55 +151,36 @@ else:
     # Use pytesseract to extract text
     import pytesseract
 
-    def check_tesseract_installation():
-        try:
-            # Try to run tesseract command
-            version = subprocess.check_output(['tesseract', '--version'])
-            st.success(f"Tesseract is installed: {version.decode('utf-8').split()[1]}")
+    def get_project_root():
+        return os.path.dirname(os.path.abspath(__file__))
+
+    def setup_tesseract():
+        # Get the project root directory
+        root_dir = get_project_root()
+        
+        # Construct path to local tesseract
+        tesseract_dir = os.path.join(root_dir, 'tesseract')
+        tesseract_exe = os.path.join(tesseract_dir, 'tesseract.exe')
+        tessdata_dir = os.path.join(tesseract_dir, 'tessdata')
+        
+        # Debug information
+        st.write("Tesseract Configuration:")
+        st.write(f"Tesseract Directory: {tesseract_dir}")
+        st.write(f"Tesseract Executable: {tesseract_exe}")
+        st.write(f"Tessdata Directory: {tessdata_dir}")
+        
+        # Set Tesseract path
+        if os.path.exists(tesseract_exe):
+            pytesseract.pytesseract.tesseract_cmd = tesseract_exe
+            # Set TESSDATA_PREFIX environment variable
+            os.environ['TESSDATA_PREFIX'] = tessdata_dir
             return True
-        except Exception as e:
-            st.error(f"Error checking Tesseract: {str(e)}")
-            return False
+        return False
 
-    def get_tesseract_path():
-        try:
-            # Try to find tesseract using which command
-            path = subprocess.check_output(['which', 'tesseract']).decode('utf-8').strip()
-            st.info(f"Tesseract path: {path}")
-            return path
-        except Exception:
-            return None
-
-    # Check Tesseract installation
-    if not check_tesseract_installation():
-        st.error("Tesseract is not properly installed.")
-        st.info("Checking common paths...")
-        
-        # Try multiple possible paths
-        tesseract_paths = [
-            '/usr/bin/tesseract',
-            '/usr/local/bin/tesseract',
-            'tesseract',
-            '/opt/homebrew/bin/tesseract'
-        ]
-        
-        tesseract_found = False
-        for path in tesseract_paths:
-            if os.path.exists(path):
-                st.info(f"Found Tesseract at: {path}")
-                pytesseract.pytesseract.tesseract_cmd = path
-                tesseract_found = True
-                break
-        
-        if not tesseract_found:
-            custom_path = get_tesseract_path()
-            if custom_path:
-                pytesseract.pytesseract.tesseract_cmd = custom_path
-                tesseract_found = True
-        
-        if not tesseract_found:
-            st.error("Could not find Tesseract installation. Please check system configuration.")
-            st.stop()
+    # Setup Tesseract
+    if not setup_tesseract():
+        st.error("Could not find local Tesseract installation.")
+        st.stop()
 
     # Debug information
     st.write("Environment Information:")
