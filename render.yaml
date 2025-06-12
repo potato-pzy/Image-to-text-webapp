@@ -2,11 +2,16 @@ services:
   - type: web
     name: photo-to-text-converter
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update && \
+      apt-get install -y tesseract-ocr tesseract-ocr-eng && \
+      pip install -r requirements.txt
     startCommand: streamlit run app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: TESSDATA_PREFIX
+        value: /usr/share/tesseract-ocr/4.00/tessdata
     packages:
       - tesseract-ocr
       - tesseract-ocr-eng 
