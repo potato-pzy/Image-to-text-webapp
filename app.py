@@ -150,7 +150,7 @@ else:
     
     # Use pytesseract to extract text
     import pytesseract
-    pytesseract.pytesseract.tesseract_cmd = r'F:\project\CODE\CODE\tesseract\tesseract.exe'
+    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
     trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
     
     print()
