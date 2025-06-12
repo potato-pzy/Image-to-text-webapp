@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: photo-to-text-converter
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    packages:
+      - tesseract-ocr
+      - tesseract-ocr-eng 
