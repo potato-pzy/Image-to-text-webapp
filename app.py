@@ -5,6 +5,7 @@ import base64
 import streamlit as st
 from gtts import gTTS
 from PIL import Image
+import os
 
 # Custom CSS for font and background
 st.markdown(
@@ -147,7 +148,25 @@ else:
     
     # Use pytesseract to extract text
     import pytesseract
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
+    # Try multiple possible paths for Tesseract
+    tesseract_paths = [
+        '/usr/bin/tesseract',
+        '/usr/local/bin/tesseract',
+        'tesseract'
+    ]
+
+    tesseract_found = False
+    for path in tesseract_paths:
+        if os.path.exists(path):
+            pytesseract.pytesseract.tesseract_cmd = path
+            tesseract_found = True
+            break
+    
+    if not tesseract_found:
+        st.error("Tesseract is not installed. Please contact support.")
+        st.stop()
+
     trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
     
     print()
