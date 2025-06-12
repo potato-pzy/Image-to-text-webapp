@@ -1,0 +1,10 @@
+numpy
+matplotlib
+tifffile
+opencv-python
+streamlit
+gtts
+Pillow
+pytesseract
+googletrans==3.1.0a0
+deep-translator 
