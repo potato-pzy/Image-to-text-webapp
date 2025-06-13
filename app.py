@@ -10,152 +10,382 @@ import subprocess
 from pathlib import Path
 import shutil
 import platform
+import warnings
 
-# Custom CSS for font and background
+# Suppress warnings
+warnings.filterwarnings("ignore")
+
+# Configure Streamlit page
+st.set_page_config(
+    page_title="OCR Vision - Photo to Text",
+    page_icon="👁️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Enhanced Custom CSS for modern UI with mobile responsiveness
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Finlandica:ital,wght@0,400..700;1,400..700&family=Zain:wght@200;300;400;700;800;900&display=swap');
-    /* Set background color */
-    body {
-        background-color: #f0f2f6;
-    }
-
-    /* Set font family and size */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    /* Global styling */
     .stApp {
-        font-family: "Zain", cursive;
-        font-size: 16px;
-        color: #000000;
-        background-size: cover;
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff;
     }
-
-    /* Style for headings */
-    h1, h2, h3 {
-        color: #31333F;
-        font-weight: bold;
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Main container */
+    .main-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 1rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
-
-    /* Style for buttons */
-    .stButton button {
-        background-color: #1E90FF;
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .main-container {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 15px;
+        }
+        
+        .hero-title {
+            font-size: 2rem !important;
+        }
+        
+        .hero-subtitle {
+            font-size: 1rem !important;
+        }
+        
+        .card-title {
+            font-size: 1.2rem !important;
+        }
+        
+        .feature-card {
+            padding: 1rem !important;
+        }
+        
+        .stButton > button {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .hero-title {
+            font-size: 1.5rem !important;
+        }
+        
+        .main-container {
+            padding: 0.75rem;
+            border-radius: 10px;
+        }
+    }
+    
+    /* Hero section */
+    .hero-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 3rem;
+        font-weight: 700;
+        text-align: center;
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+        text-align: center;
+        color: #E0E0E0;
+        margin-bottom: 2rem;
+        font-weight: 300;
+    }
+    
+    /* Cards */
+    .feature-card {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #FFD700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
         color: white;
         border: none;
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
+        border-radius: 25px;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
-
-    .stButton button:hover {
-        background-color: #1C86EE;
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(45deg, #FF5252, #26C6DA);
     }
-
-    /* Style for text areas */
-    .stTextArea textarea {
-         font-family: "Zain", cursive;
-        font-color: #000000;
-     
-        border: 1px solid #D3D3D3;
-        border-radius: 5px;
-        padding: 10px;
-        font-size: 16px;
+    
+    /* File uploader */
+    .stFileUploader > div > div {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
     }
-
-    /* Style for select boxes */
-    .stSelectbox select {
-        background-color: #FFFFFF;
-        border: 1px solid #D3D3D3;
-        border-radius: 5px;
-        padding: 10px;
-        font-size: 26px;
+    
+    .stFileUploader > div > div:hover {
+        border-color: #FFD700;
+        background: rgba(255, 215, 0, 0.1);
     }
-
-    /* Style for images */
-    .stImage img {
-        border-radius: 5px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    /* Text areas */
+    .stTextArea > div > div > textarea {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        color: #ffffff;
+        font-size: 1rem;
+        line-height: 1.6;
     }
-
-    /* Style for audio player */
-    .stAudio audio {
-        border-radius: 5px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    /* Select boxes */
+    .stSelectbox > div > div {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
     }
-
-    /* Style for download button */
-    .stDownloadButton button {
-        background-color: #28A745;
+    
+    /* Success/Error messages */
+    .stSuccess, .stError, .stWarning, .stInfo {
+        border-radius: 10px;
+        border: none;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Progress indicators */
+    .progress-container {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Audio player styling */
+    audio {
+        width: 100%;
+        border-radius: 10px;
+    }
+    
+    /* Download button special styling */
+    .download-btn {
+        background: linear-gradient(45deg, #4CAF50, #45a049);
         color: white;
         border: none;
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
+        border-radius: 25px;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
     }
-
-    .stDownloadButton button:hover {
-        background-color: #218838;
+    
+    .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
     }
-
-    /* Custom background image */
-    .stApp {
-        background-image: url('data:image/png;base64,{{background_image}}');
-        background-size: cover;
-        background-attachment: fixed;
+    
+    /* Divider */
+    .divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #FFD700, transparent);
+        margin: 2rem 0;
+        border-radius: 1px;
+    }
+    
+    /* Status indicators */
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin: 0.5rem 0;
+    }
+    
+    .status-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    
+    .status-processing {
+        background: rgba(255, 193, 7, 0.2);
+        color: #FFC107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+    
+    /* Mobile specific adjustments */
+    @media (max-width: 768px) {
+        .stFileUploader > div > div {
+            padding: 1rem;
+        }
+        
+        .stTextArea > div > div > textarea {
+            font-size: 0.9rem;
+        }
+        
+        .divider {
+            margin: 1rem 0;
+        }
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Set the title of the app
-st.markdown(f'<h1 style="color:#31333F;text-align: center;font-size:36px;">{"Photo to Text Converter App for the Visually Impaired"}</h1>', unsafe_allow_html=True)
+# Initialize session state variables
+if 'translated_text' not in st.session_state:
+    st.session_state.translated_text = ""
+if 'speech_file' not in st.session_state:
+    st.session_state.speech_file = ""
+if 'translation_ready' not in st.session_state:
+    st.session_state.translation_ready = False
 
-# Add background image
-def add_bg_from_local(image_file):
-    with open(image_file, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url('data:image/png;base64,{encoded_string}');
-            background-size: cover;
-            background-attachment: fixed;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-add_bg_from_local('neww.jpg')
+# Hero Section
+st.markdown("""
+<div class="main-container">
+    <h1 class="hero-title">👁️ OCR Vision</h1>
+    <p class="hero-subtitle">Transform images into text with AI-powered OCR technology</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Upload image
-st.write("--------------------------------------------------------------------------------------------------")
-file_upload = st.file_uploader("Upload Image", ['png', 'jpg'])
+# Features showcase
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="card-title">📸 Image Upload</div>
+        <p>Upload any image with text and let our AI extract it instantly</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="card-title">🌍 Translation</div>
+        <p>Translate extracted text to over 100 languages automatically</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="card-title">🔊 Text-to-Speech</div>
+        <p>Convert translated text to natural-sounding speech</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+# Main application section
+st.markdown("""
+<div class="main-container">
+    <div class="card-title">📤 Upload Your Image</div>
+</div>
+""", unsafe_allow_html=True)
+
+# Upload image with enhanced UI
+file_upload = st.file_uploader(
+    "Choose an image file", 
+    ['png', 'jpg', 'jpeg'], 
+    help="Upload a clear image containing text for best OCR results"
+)
 
 if file_upload is None:
-    st.text("Kindly Upload input Image")
+    st.markdown("""
+    <div class="feature-card">
+        <p style="text-align: center; font-size: 1.1rem; color: #E0E0E0;">
+            📝 Please upload an image to begin text extraction
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 else:
     # Load the image using PIL
     img = Image.open(file_upload)
     
-    # Display the image
-    st.image(img, caption='Input Image')
-    st.write("----------------------------------------------------------------------------")
+    # Display the image with enhanced styling
+    st.markdown("""
+    <div class="main-container">
+        <div class="card-title">🖼️ Uploaded Image</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Center the image
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image(img, caption='Your uploaded image', use_container_width=True)
+    
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
     
     # Convert the image to grayscale if it's not already
     if img.mode != 'L':
         img = img.convert('L')
     
-    # Save the image to a temporary file or convert it to a format that pytesseract can handle
+    # Save the image to a temporary file
     img.save("temp_image.png")
     
-    # Use pytesseract to extract text
+    # OCR Processing
     import pytesseract
-    import shutil
 
-    # Determine if we're running locally or on Render
+    # Determine if we're running locally or on cloud
     is_windows = platform.system() == 'Windows'
+
+    # Show processing status
+    st.markdown("""
+    <div class="main-container">
+        <div class="card-title">⚡ Processing Status</div>
+        <div class="status-badge status-processing">🔄 Initializing OCR Engine...</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if is_windows:
         # Local Windows setup - use bundled Tesseract
@@ -164,55 +394,53 @@ else:
         tesseract_cmd = os.path.join(tesseract_dir, 'tesseract.exe')
         tessdata_dir = os.path.join(tesseract_dir, 'tessdata')
 
-        # Debug information
-        st.write("Running on Windows - using local Tesseract")
-        st.write("Tesseract Directory:", tesseract_dir)
-        st.write("Tesseract Command:", tesseract_cmd)
-        st.write("Tessdata Directory:", tessdata_dir)
-
         # Verify Tesseract exists
         if not os.path.isfile(tesseract_cmd):
-            st.error(f"Tesseract executable not found at: {tesseract_cmd}")
+            st.error(f"❌ Tesseract executable not found at: {tesseract_cmd}")
             st.stop()
 
         # Set Tesseract command path
         pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-        # Set TESSDATA_PREFIX environment variable
         os.environ['TESSDATA_PREFIX'] = tessdata_dir
+        
+        st.markdown('<div class="status-badge status-success">✅ Local Tesseract Ready</div>', unsafe_allow_html=True)
     else:
-        # Cloud deployment (Render) - use system Tesseract
-        st.write("Running on cloud - using system Tesseract")
-        # The tesseract command should be available in the system PATH
+        # Cloud deployment - use system Tesseract
         if not shutil.which('tesseract'):
-            st.error("System Tesseract not found. Please check deployment configuration.")
+            st.error("❌ System Tesseract not found. Please check deployment configuration.")
             st.stop()
+        
+        st.markdown('<div class="status-badge status-success">✅ System Tesseract Ready</div>', unsafe_allow_html=True)
 
-    # Try OCR with debug information
+    # Perform OCR with progress indication
     try:
-        st.write("Attempting OCR...")
-        trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
+        with st.spinner('🔍 Extracting text from image...'):
+            trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
+            
         if not trans_text.strip():
-            st.warning("No text was extracted from the image. The image might be unclear or empty.")
+            st.warning("⚠️ No text was extracted from the image. Please try with a clearer image.")
+            st.stop()
     except Exception as e:
-        st.error(f"Error during text extraction: {str(e)}")
-        st.write("Tesseract command being used:", pytesseract.pytesseract.tesseract_cmd)
-        st.write("TESSDATA_PREFIX:", os.environ.get('TESSDATA_PREFIX'))
+        st.error(f"❌ Error during text extraction: {str(e)}")
         st.stop()
     
-    print()
-    print("----------------------------------------------")
-    print(" EXTRACTED TEXT")
-    print("----------------------------------------------")
-    print()
-    print(trans_text)
+    # Display extracted text
+    st.markdown("""
+    <div class="main-container">
+        <div class="card-title">📝 Extracted Text</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    st.markdown(f'<h2 style="color:#31333F;text-align: center;font-size:24px; font-we">{"Extracted Text"}</h2>', unsafe_allow_html=True)
-    st.write("-------------------------------------------------")
-    st.write(trans_text)
-    st.write("---------------------------------------------------------------------------------------")
+    st.text_area("", value=trans_text, height=200, disabled=True, key="extracted_text")
     
-    # Text Translation
-    st.markdown(f'<h2 style="color:#31333F;text-align: center;font-size:28px;font-weight:bold;">{"Text Translation"}</h2>', unsafe_allow_html=True)
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    
+    # Translation Section
+    st.markdown("""
+    <div class="main-container">
+        <div class="card-title">🌐 Text Translation</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     from googletrans import Translator, LANGUAGES
     
@@ -220,74 +448,102 @@ else:
     language_names = list(LANGUAGES.values())
     language_codes = list(LANGUAGES.keys())
     
-    # Layout
-    col1, col2 = st.columns([1, 1])
+    # Layout for translation
+    col1, col2 = st.columns(2)
     
     with col1:
-        # Source language selection
-        src_language = st.selectbox("Source Language", language_names, index=language_names.index('english'))
+        st.markdown("**Source Language**")
+        src_language = st.selectbox("", language_names, index=language_names.index('english'), key="src_lang")
         src_language_code = language_codes[language_names.index(src_language)]
         
-        # Save source language to file
-        try:
-            with open('source.txt', 'w') as file2:
-                file2.write(src_language_code)
-        except Exception as e:
-            st.error(f"Error writing source language to file: {e}")
+        st.markdown("**Original Text**")
+        st.text_area("", value=trans_text, height=150, disabled=True, key="source_text")
         
-        # Input text area
-        st.write(trans_text)
-        
-        if st.button("Submit"):
-            # Save input text to file
-            try:
-                with open('inputtext.txt', 'w') as file1:
-                    file1.write(trans_text)
-            except Exception as e:
-                st.error(f"Error writing input text to file: {e}")
+        translate_btn = st.button("🔄 Translate Text", key="translate_btn")
     
     with col2:
-        # Destination language selection
-        dest_language = st.selectbox("Destination Language", language_names, index=language_names.index('spanish'))
+        st.markdown("**Target Language**")
+        dest_language = st.selectbox("", language_names, index=language_names.index('spanish'), key="dest_lang")
         dest_language_code = language_codes[language_names.index(dest_language)]
         
-        try:
-            # Read source language code from file
-            with open('source.txt', 'r') as file11:
-                src_language_code = file11.read().strip()
-            
-            # Read input text from file
-            with open('inputtext.txt', 'r') as file1:
-                input_text = file1.read().strip()
-        except Exception as e:
-            st.error(f"Error reading from file: {e}")
-            src_language_code = ""
-            input_text = ""
-    
-        # Translate text
-        if src_language_code and dest_language_code:
-            from deep_translator import GoogleTranslator
-            translated_text = GoogleTranslator(source=src_language_code, target=dest_language_code).translate(trans_text)
-            st.text_area("", value=translated_text, height=200, disabled=True)
-        else:
-            st.text_area("", value="Translation could not be performed. Check inputs and try again.", height=200, disabled=True)
-    
-    st.write("---------------------------------------------------------------------------------------")
-    
-    # Speech Translation
-    st.markdown(f'<h2 style="color:#31333F;text-align: center;font-size:28px;">{"Speech Translation"}</h2>', unsafe_allow_html=True)
-    
-    speech_language_names = list(LANGUAGES.values())
-    speech_language_codes = list(LANGUAGES.keys())
-    
-    # Allow the user to choose a language for speech
-    speech_lang = st.selectbox("Choose Speech Language", speech_language_names, index=speech_language_names.index(dest_language))
-    speech_lang_code = speech_language_codes[speech_language_names.index(speech_lang)]
-    
-    if st.button("Convert to Speech"):
-        tts = gTTS(text=translated_text, lang=speech_lang_code, slow=False)
-        speech_file = "translated_speech.mp3"
-        tts.save(speech_file)
+        st.markdown("**Translated Text**")
         
-        st.audio(speech_file, format="audio/mp3")
-        st.download_button(label="Download Speech", data=open(speech_file, 'rb').read(), file_name="translated_speech.mp3")
+        if translate_btn:
+            try:
+                with st.spinner('🔄 Translating text...'):
+                    from deep_translator import GoogleTranslator
+                    translated_text = GoogleTranslator(source=src_language_code, target=dest_language_code).translate(trans_text)
+                
+                # Update session state
+                st.session_state.translated_text = translated_text
+                st.session_state.translation_ready = True
+                
+                st.text_area("", value=translated_text, height=150, disabled=True, key="translated_text_display")
+                
+            except Exception as e:
+                st.error(f"❌ Translation error: {str(e)}")
+                translated_text = "Translation failed. Please try again."
+                st.text_area("", value=translated_text, height=150, disabled=True, key="translated_text_error")
+        else:
+            # Show previous translation if available
+            if st.session_state.translation_ready and st.session_state.translated_text:
+                st.text_area("", value=st.session_state.translated_text, height=150, disabled=True, key="previous_translation")
+            else:
+                st.text_area("", value="Click 'Translate Text' to see translation here", height=150, disabled=True, key="placeholder_text")
+    
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    
+    # Speech Section
+    if st.session_state.translation_ready and st.session_state.translated_text:
+        st.markdown("""
+        <div class="main-container">
+            <div class="card-title">🔊 Text-to-Speech</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Layout for speech
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            speech_language_names = list(LANGUAGES.values())
+            speech_language_codes = list(LANGUAGES.keys())
+            
+            speech_lang = st.selectbox("Choose Speech Language", speech_language_names, 
+                                     index=speech_language_names.index(dest_language), key="speech_lang")
+            speech_lang_code = speech_language_codes[speech_language_names.index(speech_lang)]
+            
+            if st.button("🎤 Generate Speech", key="speech_btn"):
+                try:
+                    with st.spinner('🎵 Converting text to speech...'):
+                        tts = gTTS(text=st.session_state.translated_text, lang=speech_lang_code, slow=False)
+                        speech_file = "translated_speech.mp3"
+                        tts.save(speech_file)
+                        
+                        st.session_state.speech_file = speech_file
+                        
+                    st.success("✅ Speech generated successfully!")
+                    
+                except Exception as e:
+                    st.error(f"❌ Speech generation error: {str(e)}")
+        
+        with col2:
+            if st.session_state.speech_file and os.path.exists(st.session_state.speech_file):
+                st.markdown("**🎧 Audio Player**")
+                st.audio(st.session_state.speech_file, format="audio/mp3")
+                
+                with open(st.session_state.speech_file, 'rb') as audio_file:
+                    st.download_button(
+                        label="📥 Download Audio",
+                        data=audio_file.read(),
+                        file_name="translated_speech.mp3",
+                        mime="audio/mp3"
+                    )
+
+# Footer
+st.markdown("""
+<div class="main-container" style="margin-top: 3rem;">
+    <p style="text-align: center; color: #B0B0B0; font-size: 0.9rem;">
+        🚀 Powered by Tesseract OCR & Google Translate | Built with ❤️ using Streamlit
+    </p>
+</div>
+""", unsafe_allow_html=True)
