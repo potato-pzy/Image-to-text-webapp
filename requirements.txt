@@ -1,9 +1,9 @@
 numpy
 matplotlib
-opencv-python
-streamlit
-gtts
+opencv-python-headless
 Pillow
+streamlit
+gTTS
 pytesseract
 googletrans==3.1.0a0
 deep-translator 

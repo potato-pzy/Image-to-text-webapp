@@ -151,42 +151,6 @@ else:
     # Use pytesseract to extract text
     import pytesseract
 
-    def get_project_root():
-        return os.path.dirname(os.path.abspath(__file__))
-
-    def setup_tesseract():
-        # Get the project root directory
-        root_dir = get_project_root()
-        
-        # Construct path to local tesseract
-        tesseract_dir = os.path.join(root_dir, 'tesseract')
-        tesseract_exe = os.path.join(tesseract_dir, 'tesseract.exe')
-        tessdata_dir = os.path.join(tesseract_dir, 'tessdata')
-        
-        # Debug information
-        st.write("Tesseract Configuration:")
-        st.write(f"Tesseract Directory: {tesseract_dir}")
-        st.write(f"Tesseract Executable: {tesseract_exe}")
-        st.write(f"Tessdata Directory: {tessdata_dir}")
-        
-        # Set Tesseract path
-        if os.path.exists(tesseract_exe):
-            pytesseract.pytesseract.tesseract_cmd = tesseract_exe
-            # Set TESSDATA_PREFIX environment variable
-            os.environ['TESSDATA_PREFIX'] = tessdata_dir
-            return True
-        return False
-
-    # Setup Tesseract
-    if not setup_tesseract():
-        st.error("Could not find local Tesseract installation.")
-        st.stop()
-
-    # Debug information
-    st.write("Environment Information:")
-    st.write(f"TESSDATA_PREFIX: {os.environ.get('TESSDATA_PREFIX', 'Not set')}")
-    st.write(f"Current Tesseract path: {pytesseract.pytesseract.tesseract_cmd}")
-
     # Try OCR
     try:
         trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
