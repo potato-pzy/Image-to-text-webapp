@@ -9,6 +9,7 @@ import os
 import subprocess
 from pathlib import Path
 import shutil
+import platform
 
 # Custom CSS for font and background
 st.markdown(
@@ -151,34 +152,39 @@ else:
     
     # Use pytesseract to extract text
     import pytesseract
+    import shutil
 
-    # Debug: Print current PATH
-    st.write("Current PATH:", os.environ.get('PATH', ''))
+    # Determine if we're running locally or on Render
+    is_windows = platform.system() == 'Windows'
 
-    # Check if tesseract is available in PATH
-    tesseract_cmd = shutil.which('tesseract')
-    st.write("Tesseract command location:", tesseract_cmd)
+    if is_windows:
+        # Local Windows setup - use bundled Tesseract
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        tesseract_dir = os.path.join(current_dir, 'tesseract')
+        tesseract_cmd = os.path.join(tesseract_dir, 'tesseract.exe')
+        tessdata_dir = os.path.join(tesseract_dir, 'tessdata')
 
-    if tesseract_cmd:
+        # Debug information
+        st.write("Running on Windows - using local Tesseract")
+        st.write("Tesseract Directory:", tesseract_dir)
+        st.write("Tesseract Command:", tesseract_cmd)
+        st.write("Tessdata Directory:", tessdata_dir)
+
+        # Verify Tesseract exists
+        if not os.path.isfile(tesseract_cmd):
+            st.error(f"Tesseract executable not found at: {tesseract_cmd}")
+            st.stop()
+
+        # Set Tesseract command path
         pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+        # Set TESSDATA_PREFIX environment variable
+        os.environ['TESSDATA_PREFIX'] = tessdata_dir
     else:
-        # Try common Tesseract installation paths
-        common_paths = [
-            '/usr/bin/tesseract',
-            '/usr/local/bin/tesseract',
-            '/opt/homebrew/bin/tesseract',
-            'C:\\Program Files\\Tesseract-OCR\\tesseract.exe',
-            'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe',
-        ]
-        
-        for path in common_paths:
-            if os.path.isfile(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                st.write(f"Found Tesseract at: {path}")
-                break
-        else:
-            st.error("Tesseract is not installed or not found in PATH")
-            st.write("Please make sure Tesseract is installed and in your system PATH")
+        # Cloud deployment (Render) - use system Tesseract
+        st.write("Running on cloud - using system Tesseract")
+        # The tesseract command should be available in the system PATH
+        if not shutil.which('tesseract'):
+            st.error("System Tesseract not found. Please check deployment configuration.")
             st.stop()
 
     # Try OCR with debug information
@@ -190,6 +196,7 @@ else:
     except Exception as e:
         st.error(f"Error during text extraction: {str(e)}")
         st.write("Tesseract command being used:", pytesseract.pytesseract.tesseract_cmd)
+        st.write("TESSDATA_PREFIX:", os.environ.get('TESSDATA_PREFIX'))
         st.stop()
     
     print()
