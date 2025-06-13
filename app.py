@@ -8,6 +8,7 @@ from PIL import Image
 import os
 import subprocess
 from pathlib import Path
+import shutil
 
 # Custom CSS for font and background
 st.markdown(
@@ -151,13 +152,44 @@ else:
     # Use pytesseract to extract text
     import pytesseract
 
-    # Try OCR
+    # Debug: Print current PATH
+    st.write("Current PATH:", os.environ.get('PATH', ''))
+
+    # Check if tesseract is available in PATH
+    tesseract_cmd = shutil.which('tesseract')
+    st.write("Tesseract command location:", tesseract_cmd)
+
+    if tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    else:
+        # Try common Tesseract installation paths
+        common_paths = [
+            '/usr/bin/tesseract',
+            '/usr/local/bin/tesseract',
+            '/opt/homebrew/bin/tesseract',
+            'C:\\Program Files\\Tesseract-OCR\\tesseract.exe',
+            'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe',
+        ]
+        
+        for path in common_paths:
+            if os.path.isfile(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                st.write(f"Found Tesseract at: {path}")
+                break
+        else:
+            st.error("Tesseract is not installed or not found in PATH")
+            st.write("Please make sure Tesseract is installed and in your system PATH")
+            st.stop()
+
+    # Try OCR with debug information
     try:
+        st.write("Attempting OCR...")
         trans_text = pytesseract.image_to_string("temp_image.png", lang='eng')
         if not trans_text.strip():
             st.warning("No text was extracted from the image. The image might be unclear or empty.")
     except Exception as e:
         st.error(f"Error during text extraction: {str(e)}")
+        st.write("Tesseract command being used:", pytesseract.pytesseract.tesseract_cmd)
         st.stop()
     
     print()
