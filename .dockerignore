@@ -1,0 +1,31 @@
+# Ignore Git history
+.git
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+ENV/
+
+# Development tools and logs
+*.log
+*.md
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+
+# Tesseract local Windows binaries (not needed inside Linux container)
+tesseract/
+*.exe
+*.dll 
